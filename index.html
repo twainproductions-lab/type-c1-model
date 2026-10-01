@@ -1,3 +1,11 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
 <title>Type C1 Apartment Model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -868,7 +876,7 @@ new MutationObserver(applyTheme).observe(document.documentElement,{attributes:tr
 /* ---------- loop ---------- */
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);labelR.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(stage); resize();
-document.getElementById('loading').hidden=true;
+document.getElementById('loading').remove();
 let lastNow=0;
 renderer.setAnimationLoop(now=>{
   if(anim){const k=Math.min(1,(now-anim.s)/1000), e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
@@ -880,3 +888,6 @@ renderer.setAnimationLoop(now=>{
 });
 window.__shot=id=>{const s=SHOTS.find(q=>q.id===id); if(s){camera.position.copy(s.p);controls.target.copy(s.t);camera.fov=60;camera.updateProjectionMatrix();}};
 </script>
+
+</body>
+</html>
