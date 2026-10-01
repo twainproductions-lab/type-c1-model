@@ -211,7 +211,7 @@ const T_OUT=0.15, T_IN=0.12;
 const O=T_OUT, I=T_IN;
 const P=[
   [441,265,460,265,'w',O],[460,265,590,265,'win',O],[590,265,730,265,'w',O],[730,265,825,265,'win',O],
-  [825,265,890,265,'w',O],[890,265,1055,265,'win',O],[1055,265,1098,265,'w',O],
+  [825,265,887.25,265,'w',O],[887.25,265,1058.452,265,'lwin',O],[1058.452,265,1098,265,'w',O],
   [441,265,441,630,'w',O],[441,630,441,680,'hwin',O],[441,680,441,750,'w',O],
   [1098,265,1098,866,'w',O],
   [441,750,560,750,'w',O],[560,750,610,750,'win',O],[610,750,760,750,'w',O],[760,750,805,750,'hwin',O],[805,750,850,750,'w',O],
@@ -321,7 +321,7 @@ const T={
   oakFloor: tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#B8895A',dark:'#7A5230',light:'#D8B084',plank:128,seed:11})),
   walnut:   tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#5A3A26',dark:'#2E1B10',light:'#86603F',seed:21})),
   oakVeneer:tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#C69A69',dark:'#8B6038',light:'#E3C39B',seed:31})),
-  tileIn:tex(512,512,(g,w,h)=>polished(g,w,h,{base:'#D3CEC7',grout:'rgba(245,243,240,.9)',seed:44})),
+  tileIn:tex(512,512,(g,w,h)=>polished(g,w,h,{base:'#DAD5CD',grout:'rgba(196,188,178,.85)',seed:44})),
   tilePorch:tex(512,512,(g,w,h)=>polished(g,w,h,{base:'#CDB89D',grout:'rgba(170,150,125,.8)',seed:45})),
   doorLeaf:tex(512,1024,(g,w,h)=>wood(g,w,h,{base:'#2A2A2C',dark:'#202022',light:'#323235',seed:46})),
   porcelain:tex(1024,512,(g,w,h)=>marble(g,w,h,{base:'#EAE4DA',vein:'#8C8074',gold:'#B89868',tiles:[2,1],seed:41})),
@@ -349,7 +349,7 @@ const M={
   wall:std({color:0xF4F2EE,roughness:.92}),
   cap:std({color:0x22324B,roughness:.8}),
   glass:phys({color:0xBBD4E2,transparent:true,opacity:.25,roughness:.05,metalness:0,side:THREE.DoubleSide,depthWrite:false}),
-  frame:std({color:0x3C3F44,roughness:.45,metalness:.5}),
+  frame:std({color:0x3D4955,roughness:.4,metalness:.45}),
   rail:std({color:0x5E646C,roughness:.45,metalness:.5}),
   slab:std({color:0x7B828C,roughness:1}),
   white:std({color:0xFBFBFA,roughness:.2}),
@@ -421,12 +421,16 @@ function buildWalls(H){
       const len=s1-s0, k=Math.max(2,Math.round(len/0.12));
       for(let i=0;i<=k;i++){const s=s0+len*i/k;
         h?box(s-0.01,s+0.01,n-0.01,n+0.01,0,Math.min(RAIL,H),M.rail):box(n-0.01,n+0.01,s-0.01,s+0.01,0,Math.min(RAIL,H),M.rail);} }
-    else { const sill=type==='win'?SILL:HSILL;
-      piece(0,sill,M.wall,true); piece(HEAD,H,M.wall,true);
-      if(H>sill){ piece(sill,Math.min(HEAD,H),M.glass,false,0.012);
-        const len=s1-s0, k=Math.max(1,Math.round(len/0.7)), top=Math.min(HEAD,H);
+    else { // 'lwin' = living-room window as built: 2 684 wide, sill 80, head 2 010, 4 bays, transom at 860
+      const L=type==='lwin', sill=L?0.08:type==='win'?SILL:HSILL, head=L?2.01:HEAD;
+      piece(0,sill,M.wall,true); piece(head,H,M.wall,true);
+      if(H>sill){ piece(sill,Math.min(head,H),M.glass,false,0.012);
+        const len=s1-s0, k=L?4:Math.max(1,Math.round(len/0.7)), top=Math.min(head,H), fw=L?0.03:0.02;
         for(let i=0;i<=k;i++){const s=s0+len*i/k;
-          h?box(s-0.02,s+0.02,n-0.03,n+0.03,sill,top,M.frame):box(n-0.03,n+0.03,s-0.02,s+0.02,sill,top,M.frame);} } }
+          h?box(s-fw,s+fw,n-0.03,n+0.03,sill,top,M.frame):box(n-0.03,n+0.03,s-fw,s+fw,sill,top,M.frame);}
+        const rows=L?[sill,0.86,top]:[sill,top];
+        for(const y of rows){ if(y>H) continue; const y0=Math.max(sill,y-0.03), y1=Math.min(top,y+0.03);
+          h?box(s0,s1,n-0.03,n+0.03,y0,y1,M.frame):box(n-0.03,n+0.03,s0,s1,y0,y1,M.frame);} } }
   }
 }
 
@@ -446,7 +450,7 @@ const slab=new THREE.Mesh(slabGeo,M.slab); slab.receiveShadow=true; scene.add(sl
 
 const FURN_FLOOR={
   oak:withS(std({map:T.oakFloor,roughness:.55}),1.6),
-  stone:withS(phys({map:T.tileIn,roughness:.12,clearcoat:.7,clearcoatRoughness:.08}),1.2),
+  stone:withS(phys({map:T.tileIn,roughness:.06,clearcoat:1,clearcoatRoughness:.03,envMapIntensity:1.3}),1.2),
   wet:withS(std({map:T.bathTile,roughness:.5}),1.2),
   yard:withS(std({map:T.yardTile,roughness:.8}),1.2),
 };
@@ -611,13 +615,22 @@ sofa(10225-475,1900,-90);
 R(6530,6560,1180,2620,1000,1810,M.screen,6);
 // built-in TV console, full length of the wall, standing on a recessed plinth
 R(6472,6880,500,3300,0,90,M.plinth);
-joinery({x0:6472,x1:6902,z0:500,z1:3300,y0:90,y1:500,front:'+x',door:700,body:M.walnut,face:M.walnut,handle:false,flute:28});
-R(6472,6925,495,3305,500,520,M.calacatta);
-vase(6700,700,520,380); vase(6690,3050,520,220,M.ceramic);
+joinery({x0:6472,x1:6902,z0:500,z1:3300,y0:90,y1:500,front:'+x',door:700,body:M.oakV,face:M.oakV,handle:'h',hlen:360});
+R(6472,6925,495,3305,500,530,M.quartz);
+vase(6700,700,530,380); vase(6690,3050,530,220,M.ceramic);
 C(9950,3300,160,180,34,60,M.calacatta,40); C(9950,3300,12,12,60,1560,M.brass,12); C(9950,3300,200,230,1400,1680,M.shade,48,true); lampLight(9950,1550,3300,2.6,6);
-catTree(9150,9650,110,610);
+catTree(8700,9200,300,800);
 frame(10170,10225,1250,2550,1150,1950,T.art2,'-x');
-curtains(7446,10033,75);
+// double-layer curtain: sheer drawn across, blackout drapes gathered at each end
+{ const X0=6696, X1=9980, F=75;
+  R(X0-40,X1+40,F+60,F+230,CEIL-35,CEIL,M.matteW);                       // ceiling curtain box with two tracks
+  const sheer=new THREE.MeshPhysicalMaterial({map:T.linenW,color:0xffffff,transparent:true,opacity:.62,roughness:.9,sheen:.6,sheenColor:new THREE.Color(0xffffff),side:THREE.DoubleSide,depthWrite:false});
+  const drape=(a,b,z,mat,folds,amp)=>{ const w=(b-a)/1000, hh=(CEIL-60)/1000, geo=new THREE.PlaneGeometry(w,hh,Math.max(24,folds*8),1), p=geo.attributes.position;
+    for(let i=0;i<p.count;i++) p.setZ(i,Math.sin((p.getX(i)/w+.5)*Math.PI*2*folds)*amp); geo.computeVertexNormals();
+    const m=new THREE.Mesh(geo,mat); m.position.set(((a+b)/2-W/2)/1000,(CEIL-60)/2000+.015,(z-D/2)/1000); m.castShadow=mat!==sheer; furn.add(m); };
+  drape(X0,X1,F+110,sheer,26,.022);
+  const black=M.linen.clone(); black.side=THREE.DoubleSide; black.color=new THREE.Color(0xB8A994);
+  drape(X0,X0+520,F+190,black,6,.04); drape(X1-520,X1,F+190,black,6,.04); }
 
 const __d0=furn.children.length;
 /* Dining: table's long side runs parallel to the cabinet wall */
