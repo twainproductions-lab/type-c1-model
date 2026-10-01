@@ -615,9 +615,24 @@ function catTree(x0,x1,z0,z1){ const post=(x,z,y0,y1)=>C(x,z,42,42,y0,y1,M_SISAL
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.19,.035,12,40),M_PILE); ring.rotation.x=Math.PI/2; ring.position.set((xb-W/2)/1000,1.80,(zb-D/2)/1000); ring.castShadow=true; furn.add(ring);
   C(x0+20,z1-130,2,2,940,1120,M.plinth,6); const ball=new THREE.Mesh(new THREE.SphereGeometry(.035,20,14),M.velvet); ball.position.set((x0+20-W/2)/1000,.92,(z1-130-D/2)/1000); ball.castShadow=true; furn.add(ball);
 }
+// cream 3-seater: raised on tapered walnut legs, slim track arms, two long seat cushions, three loose back cushions
+const T_CREAM=tex(512,512,(g,w,h)=>fabric(g,w,h,{base:'#DFCCAA',seed:88}));
+const M_CREAM=withS(phys({map:T_CREAM,roughness:.85,sheen:.9,sheenColor:new THREE.Color(0xF6E8CF),sheenRoughness:.55}),.45);
+const M_RUST=phys({color:0x9C5B3B,roughness:.8,sheen:1,sheenColor:new THREE.Color(0xE0A57E),sheenRoughness:.4});
+function sofa2(x,z,deg){ const g=grp(x,z,deg); const Wd=2400, Dp=930, hw=Wd/2, hd=Dp/2;
+  for(const [a,b] of [[-hw+90,-hd+80],[hw-90,-hd+80],[-hw+90,hd-80],[hw-90,hd-80]]){ cyl(g,[a,75,b],22,15,150,M.walnut,16); cyl(g,[a,8,b],16,16,16,M.brass,16); }
+  part(g,[0,225,0],[Wd,150,Dp],M_CREAM,40);                                   // frame
+  for(const sg of [-1,1]) part(g,[sg*(hw-85),400,0],[170,500,Dp],M_CREAM,55);  // track arms, 650 high
+  part(g,[0,540,-hd+75],[Wd-340,480,150],M_CREAM,50);                           // back frame
+  for(const sg of [-1,1]) part(g,[sg*(Wd-340)/4,385,40],[(Wd-340)/2-10,170,Dp-170],M_CREAM,70); // seat cushions
+  for(let i=0;i<3;i++){ const w=(Wd-340)/3; const m=part(g,[-(Wd-340)/2+w*(i+.5),640,-hd+230],[w-14,430,210],M_CREAM,90); m.rotation.x=-0.16; }
+  const p1=part(g,[-hw+420,600,-hd+380],[460,440,150],M_RUST,70); p1.rotation.set(-.28,.3,.04);
+  const p2=part(g,[hw-430,595,-hd+380],[440,420,140],M.velvet,70); p2.rotation.set(-.3,-.25,-.05);
+  const th=part(g,[hw-85,665,120],[250,30,560],M.linen,12); th.rotation.z=-.06;  // throw over the arm
+}
 /* Living */
 rug(7100,9550,650,3150,T.rugLiving);
-sofa(10225-475,2020,-90);
+sofa2(10225-470,2020,-90);
 R(6530,6560,1180,2620,1000,1810,M.screen,6);
 // built-in TV console, full length of the wall, standing on a recessed plinth
 R(6472,6880,500,3300,0,90,M.plinth);
@@ -764,12 +779,12 @@ R(4779,4794,5950,6450,1100,1900,M.mirror,4);
     R(Rr-FW-150,Rr-FW-90,Math.min(z,zz),Math.max(z,zz),900,1180,std({color:0x111214,roughness:.3,metalness:.5}),6);   // digital lock body
     R(Rr-FW-260,Rr-FW-120,Math.min(zz,zz+sg*14),Math.max(zz,zz+sg*14),1000,1018,M.steel,4); }                           // lever
   C((L+Rr)/2,DZ+26,6,6,1480,1490,M.steel,16).rotation.x=Math.PI/2;                                                       // peephole
-  const porch=new THREE.Mesh(boxUV(new THREE.BoxGeometry((7848-L)/1000,.02,(9708-8708)/1000),1.2),phys({map:T.tilePorch,roughness:.12,clearcoat:.7,clearcoatRoughness:.08}));
+  const porch=new THREE.Mesh(boxUV(new THREE.BoxGeometry((7848-L)/1000,.02,(9708-8708)/1000),1.2),FURN_FLOOR.stone);
   porch.position.set(((L+7848)/2-W/2)/1000,.012,((8708+9708)/2-D/2)/1000); porch.receiveShadow=true; scene.add(porch);
   // shoe cabinet outside, right of the door: 830 long × 420 deep, against the porch's right-hand wall
   const SX1=7848, SX0=SX1-420, SZ0=8720, SZ1=SZ0+830;
   R(SX0+50,SX1,SZ0+30,SZ1-30,0,100,M.plinth);
-  joinery({x0:SX0+18,x1:SX1,z0:SZ0,z1:SZ1,y0:100,y1:1000,front:'-x',door:415,body:M.oakV,face:M.oakV,handle:'v',hlen:320});
+  joinery({x0:SX0+18,x1:SX1,z0:SZ0,z1:SZ1,y0:100,y1:1000,front:'-x',door:415,body:M.oakV,face:M.oakV,handle:false}); // handleless, push-to-open
   R(SX0,SX1,SZ0-10,SZ1+10,1000,1030,M.quartz,4);
 }
 /* Yard */
@@ -825,7 +840,7 @@ document.getElementById('a-ft').textContent=Math.round(total*10.7639).toLocaleSt
 const swRoot=document.getElementById('swatches');
 [['Walnut','Joinery, beds, tables',T.walnut],['Oak veneer','Kitchen base units',T.oakVeneer],['Matte white','Kitchen upper units',null,'#F1EFEA'],
  ['Pale quartz','Kitchen worktop',T.quartz],['Calacatta-look','Backsplash, table tops',T.calacatta],['Brushed brass','Handles, lamps, legs',null,'linear-gradient(135deg,#E3C68A,#A57F3E 60%,#D7B574)'],
- ['Bouclé','Sofa, dining seats',T.boucle],['Cognac leather','Desk chair',null,'#8A4A26'],['Oak flooring','Bedrooms, 200 mm boards',T.oakFloor],['Polished porcelain','Living, dining, kitchen · 600 × 600',T.tileIn],['Porch tile','Outside the front door',T.tilePorch],['Front door','Charcoal leaf, black frame',T.doorLeaf]]
+ ['Cream fabric','Sofa',T_CREAM],['Bouclé','Dining seats',T.boucle],['Cognac leather','Desk chair',null,'#8A4A26'],['Oak flooring','Bedrooms, 200 mm boards',T.oakFloor],['Polished porcelain','Living, dining, kitchen, porch · 600 × 600',T.tileIn],['Front door','Charcoal leaf, black frame',T.doorLeaf]]
 .forEach(([n,u,t,c])=>{const d=document.createElement('div');d.className='sw';const i=document.createElement('i');
   if(t) i.style.backgroundImage=`url(${t.image.toDataURL('image/jpeg',.7)})`; else i.style.background=c;
   d.append(i); const s=document.createElement('span'); s.innerHTML=`${n}<small>${u}</small>`; d.append(s); swRoot.append(d);});
