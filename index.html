@@ -596,31 +596,37 @@ const T_SISAL=tex(256,256,(g,w,h)=>{g.fillStyle='#C9AE80';g.fillRect(0,0,w,h);co
   for(let y=0;y<h;y+=4){g.fillStyle=`rgba(90,60,25,${.12+rr()*.12})`;g.fillRect(0,y,w,1.5);g.fillStyle=`rgba(255,240,210,${rr()*.15})`;g.fillRect(0,y+2,w,1);}});
 const M_SISAL=new THREE.MeshStandardMaterial({map:T_SISAL,roughness:.95});
 const M_PILE=withS(phys({map:T.boucle,color:0xD9CCB8,roughness:.95,sheen:1,sheenColor:new THREE.Color(0xffffff),sheenRoughness:.8}),.5);
-function catTree(x0,x1,z0,z1){ const cx=(x0+x1)/2, cz=(z0+z1)/2;
-  R(x0,x1,z0,z1,34,74,M.walnut,8); R(x0+15,x1-15,z0+15,z1-15,74,90,M_PILE,6);
-  const post=(x,z,y0,y1)=>C(x,z,45,45,y0,y1,M_SISAL,24);
-  post(x0+110,z0+110,90,1250); post(x1-110,z1-110,90,880); post(x1-110,z0+120,880,1520); post(x0+120,z1-120,1250,1720);
-  R(x0+20,x0+340,z1-300,z1-10,420,450,M.walnut,6); R(x0+30,x0+330,z1-290,z1-20,450,470,M_PILE,8);           // low step
-  R(x1-420,x1+40,z0+30,z1-20,860,890,M.walnut,6); R(x1-410,x1+30,z0+40,z1-30,890,910,M_PILE,8);           // middle platform
-  R(x0-30,x0+380,z0-10,z0+330,1230,1260,M.walnut,6);                                                      // condo floor
-  R(x0-30,x0+380,z0-10,z0+330,1260,1560,M_PILE,20); C(x0+175,z0+335,95,95,1300,1500,M.plinth,32).rotation.x=Math.PI/2; // condo + doorway
-  R(x0-30,x0+380,z0-10,z0+330,1560,1580,M.walnut,6);
-  C(x1-140,z1-160,230,230,1720,1750,M.walnut,48); C(x1-140,z1-160,215,215,1750,1790,M_PILE,48);           // top perch
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(.2,.035,12,40),M_PILE); ring.rotation.x=Math.PI/2; ring.position.set((x1-140-W/2)/1000,1.79,(z1-160-D/2)/1000); ring.castShadow=true; furn.add(ring);
-  C(x1-50,z0+150,2,2,700,860,M.plinth,6); const ball=new THREE.Mesh(new THREE.SphereGeometry(.035,20,14),M.velvet); ball.position.set((x1-50-W/2)/1000,.68,(z0+150-D/2)/1000); ball.castShadow=true; furn.add(ball);
+// corner cat tree, 470 × 480 footprint, 1 790 high: every platform sits on a sisal post
+function catTree(x0,x1,z0,z1){ const post=(x,z,y0,y1)=>C(x,z,42,42,y0,y1,M_SISAL,24);
+  const plat=(a,b,c,d,y)=>{ R(a,b,c,d,y,y+25,M.walnut,6); R(a+8,b-8,c+8,d-8,y+25,y+45,M_PILE,8); };
+  R(x0,x1,z0,z1,0,50,M.walnut,8); R(x0+10,x1-10,z0+10,z1-10,50,66,M_PILE,6);                  // base
+  // condo box on the base, opening towards the room
+  R(x0+190,x1-10,z0+10,z0+300,66,420,M_PILE,18); R(x0+190,x1-10,z0+10,z0+300,420,440,M.walnut,6);
+  C(x0+188,z0+155,100,100,150,350,M.plinth,32).rotation.z=Math.PI/2;
+  const xb=x1-60, zb=z0+60, xf=x0+60, zf=z1-60;
+  post(xb,zb,440,1740);                       // tall back post, in the corner
+  post(xf,zf,66,1120);                        // front post
+  post(x1-70,zf,66,1120);                     // side post under the main platform
+  plat(x0,x1,z0,z1,1120);                     // main platform, full footprint
+  post(xf,z0+70,1165,1430);                   // short post to the upper step
+  plat(x0,x0+300,z0,z0+300,1430);             // upper step
+  plat(x0+20,x0+260,z1-250,z1,560);           // low step on the front post
+  C(xb,zb,215,215,1740,1765,M.walnut,48); C(xb,zb,200,200,1765,1800,M_PILE,48);                 // top perch
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.19,.035,12,40),M_PILE); ring.rotation.x=Math.PI/2; ring.position.set((xb-W/2)/1000,1.80,(zb-D/2)/1000); ring.castShadow=true; furn.add(ring);
+  C(x0+20,z1-130,2,2,940,1120,M.plinth,6); const ball=new THREE.Mesh(new THREE.SphereGeometry(.035,20,14),M.velvet); ball.position.set((x0+20-W/2)/1000,.92,(z1-130-D/2)/1000); ball.castShadow=true; furn.add(ball);
 }
 /* Living */
 rug(7100,9550,650,3150,T.rugLiving);
-sofa(10225-475,1900,-90);
+sofa(10225-475,2020,-90);
 R(6530,6560,1180,2620,1000,1810,M.screen,6);
 // built-in TV console, full length of the wall, standing on a recessed plinth
 R(6472,6880,500,3300,0,90,M.plinth);
 joinery({x0:6472,x1:6902,z0:500,z1:3300,y0:90,y1:500,front:'+x',door:700,body:M.oakV,face:M.oakV,handle:'h',hlen:360});
 R(6472,6925,495,3305,500,530,M.quartz);
 vase(6700,700,530,380); vase(6690,3050,530,220,M.ceramic);
-C(9950,3300,160,180,34,60,M.calacatta,40); C(9950,3300,12,12,60,1560,M.brass,12); C(9950,3300,200,230,1400,1680,M.shade,48,true); lampLight(9950,1550,3300,2.6,6);
-catTree(8700,9200,300,800);
-frame(10170,10225,1250,2550,1150,1950,T.art2,'-x');
+C(9950,3440,160,180,34,60,M.calacatta,40); C(9950,3440,12,12,60,1560,M.brass,12); C(9950,3440,200,230,1400,1680,M.shade,48,true); lampLight(9950,1550,3440,2.6,6);
+catTree(9750,10220,320,800);
+frame(10170,10225,1370,2670,1150,1950,T.art2,'-x');
 // double-layer curtain: sheer drawn across, blackout drapes gathered at each end
 { const X0=6696, X1=9980, F=75;
   R(X0-40,X1+40,F+60,F+230,CEIL-35,CEIL,M.matteW);                       // ceiling curtain box with two tracks
