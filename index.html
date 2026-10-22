@@ -137,7 +137,15 @@ h2{font:600 22px/1.1 var(--f-display);margin:2px 0 4px;letter-spacing:.02em}
       <div>
         <div class="eyebrow">Interior scheme</div>
         <h2>Warm luxe</h2>
-        <p class="note">Walnut and fluted joinery, brushed brass, marble-look stone and bouclé. U-shaped kitchen continuing into the dining sideboard: oak veneer lowers, matte white uppers and tall units to the ceiling, pale quartz top.</p>
+        <p class="note" id="scheme-note">Walnut and fluted joinery, brushed brass, marble-look stone and bouclé.</p>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:8px">Cabinet finish</div>
+        <div class="seg" role="group" aria-label="Cabinet finish" style="width:max-content;max-width:100%">
+          <button id="f-light" aria-pressed="true">Oak &amp; white</button>
+          <button id="f-dark" aria-pressed="false">Dark oak &amp; cream</button>
+        </div>
+        <p class="note" id="finish-note" style="margin-top:8px"></p>
       </div>
       <div>
         <div class="eyebrow" style="margin-bottom:8px">Interior views</div>
@@ -320,6 +328,7 @@ function polished(g,w,h,{base,grout,seed}){ const r=rng(seed); g.fillStyle=base;
 const T={
   oakFloor: tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#B8895A',dark:'#7A5230',light:'#D8B084',plank:128,seed:11})),
   walnut:   tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#5A3A26',dark:'#2E1B10',light:'#86603F',seed:21})),
+  darkOak:tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#5B3826',dark:'#2B160C',light:'#7D5034',seed:32})),
   oakVeneer:tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#C69A69',dark:'#8B6038',light:'#E3C39B',seed:31})),
   tileIn:tex(512,512,(g,w,h)=>polished(g,w,h,{base:'#DAD5CD',grout:'rgba(196,188,178,.85)',seed:44})),
   tilePorch:tex(512,512,(g,w,h)=>polished(g,w,h,{base:'#CDB89D',grout:'rgba(170,150,125,.8)',seed:45})),
@@ -838,7 +847,7 @@ document.getElementById('a-m2').textContent=total.toFixed(1);
 document.getElementById('a-ft').textContent=Math.round(total*10.7639).toLocaleString('en-GB');
 
 const swRoot=document.getElementById('swatches');
-[['Walnut','Joinery, beds, tables',T.walnut],['Oak veneer','Kitchen base units',T.oakVeneer],['Matte white','Kitchen upper units',null,'#F1EFEA'],
+[['Walnut','Joinery, beds, tables',T.walnut],['Oak veneer','Kitchen base units',T.oakVeneer],['Dark oak','Alternative lowers',T.darkOak],['Matte white','Kitchen upper units',null,'#F1EFEA'],
  ['Pale quartz','Kitchen worktop',T.quartz],['Calacatta-look','Backsplash, table tops',T.calacatta],['Brushed brass','Handles, lamps, legs',null,'linear-gradient(135deg,#E3C68A,#A57F3E 60%,#D7B574)'],
  ['Cream fabric','Sofa',T_CREAM],['Bouclé','Dining seats',T.boucle],['Cognac leather','Desk chair',null,'#8A4A26'],['Oak flooring','Bedrooms, 200 mm boards',T.oakFloor],['Polished porcelain','Living, dining, kitchen, porch · 600 × 600',T.tileIn],['Front door','Charcoal leaf, black frame',T.doorLeaf]]
 .forEach(([n,u,t,c])=>{const d=document.createElement('div');d.className='sw';const i=document.createElement('i');
@@ -936,6 +945,17 @@ function setMode(f){ furnished=f; furn.visible=f; lineGroup.visible=!f;
   document.getElementById('door-seg').hidden=!f; }
 document.getElementById('m-shell').onclick=()=>setMode(false);
 document.getElementById('m-furn').onclick=()=>setMode(true);
+// cabinet finish alternatives: lower cabinets (kitchen, sideboard, TV console, shoe cabinet) and upper / tall units
+const FINISH={
+  light:{map:T.oakVeneer,upper:0xF1EFEA,note:'Light oak veneer lowers; matte white uppers and tall units to the ceiling; pale quartz top; brushed brass handles.'},
+  dark:{map:T.darkOak,upper:0xE4D6BD,note:'Dark oak, mahogany-toned lowers; cream beige uppers and tall units to the ceiling; pale quartz top; brushed brass handles.'}};
+function setFinish(k){ const f=FINISH[k]; M.oakV.map=f.map; M.oakV.needsUpdate=true; M.matteW.color.set(f.upper);
+  document.getElementById('f-light').setAttribute('aria-pressed',k==='light'); document.getElementById('f-dark').setAttribute('aria-pressed',k==='dark');
+  document.getElementById('finish-note').textContent=f.note; }
+document.getElementById('f-light').onclick=()=>setFinish('light');
+document.getElementById('f-dark').onclick=()=>setFinish('dark');
+setFinish(location.hash==='#dark'?'dark':'light');
+window.__finish=setFinish;
 setMode(true);
 let doorT=0, doorGoal=0;
 const placeDoor=t=>doorPanels.forEach(p=>{ p.g.position.x=((p.open+(p.closed-p.open)*t)-W/2)/1000; });
