@@ -45,6 +45,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .pad button{height:44px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:16px;cursor:pointer;touch-action:none;user-select:none}
 .pad button:active,.pad button.on{background:var(--mark);color:#1B2331}
 .pad button:focus-visible{outline:2px solid var(--mark)}
+.pt-status{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;z-index:3;font:12px var(--f-mono);color:var(--ink);background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);border-radius:999px;padding:6px 14px;max-width:calc(100% - 32px);text-align:center}
 .chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;cursor:pointer}
 .chk input{accent-color:var(--accent);width:16px;height:16px}
 .loading{position:absolute;inset:0;display:grid;place-items:center;font:12px var(--f-mono);color:var(--muted)}
@@ -115,11 +116,15 @@ h2{font:600 22px/1.1 var(--f-display);margin:2px 0 4px;letter-spacing:.02em}
         <button id="d-open" aria-pressed="true">Door open</button>
         <button id="d-shut" aria-pressed="false">Door closed</button>
       </div>
+      <div class="seg" role="group" aria-label="Photo render">
+        <button id="photo" aria-pressed="false">Photo render</button>
+      </div>
       <div class="seg" role="group" aria-label="Annotations">
         <button id="t-lbl" aria-pressed="false">Labels</button>
         <button id="t-dim" aria-pressed="false">Dimensions</button>
       </div>
     </div>
+    <div class="pt-status" id="pt-status" role="status" hidden></div>
     <div class="hint"><span class="h-orbit">Drag to orbit · scroll or pinch to zoom · right-drag to pan</span><span class="h-walk">Standing at 1.65 m · drag to look around · W A S D, arrow keys or the pad to walk</span></div>
     <div class="pad" aria-label="Walk controls">
       <span></span><button data-k="f" aria-label="Walk forward">▲</button><span></span>
@@ -198,7 +203,10 @@ h2{font:600 22px/1.1 var(--f-display);margin:2px 0 4px;letter-spacing:.02em}
 <script type="importmap">
 {"imports":{
   "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "three/examples/jsm/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "three-mesh-bvh":"https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.6/build/index.module.js",
+  "three-gpu-pathtracer":"https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.22/build/index.module.js"
 }}
 </script>
 <script type="module">
@@ -207,6 +215,10 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {CSS2DRenderer, CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {WebGLPathTracer, GradientEquirectTexture} from 'three-gpu-pathtracer';
+// the path tracer expects scene rotation fields added in later three.js releases
+if(!new THREE.Scene().backgroundRotation){ THREE.Scene.prototype.backgroundRotation=new THREE.Euler(); THREE.Scene.prototype.environmentRotation=new THREE.Euler(); }
 
 /* ---------- Plan → millimetres. Anchors: outer walls at px 441/1098 (x) and 265/866 (y) ---------- */
 const PX0=441, PX1=1098, PY0=265, PY1=866, W=10300, D=9450;
@@ -384,6 +396,7 @@ const M={
   fridgeTrim:std({color:0xC9CCCF,metalness:.6,roughness:.35}),
   doorGlass:phys({color:0xB9A98C,transparent:true,opacity:.32,roughness:.08,metalness:.1,side:THREE.DoubleSide,depthWrite:false}),
   bronze:std({color:0x5B4632,metalness:.9,roughness:.35}),
+  reveal:std({color:0x1E1C1A,roughness:.55,metalness:.35}),
   mirror:std({color:0xE8EEF2,metalness:1,roughness:.03}),
   plinth:std({color:0x2B2724,roughness:.8}),
   leaf:std({color:0x3F5A33,roughness:.6,side:THREE.DoubleSide}),
@@ -515,29 +528,26 @@ function grp(xmm,zmm,deg=0,y=0){const g=new THREE.Group();g.position.set((xmm-W/
 function fluted(x0,x1,z0,z1,y0,y1,face,pitch,mat){
   const alongX=face==='+z'||face==='-z', a0=alongX?x0:z0, a1=alongX?x1:z1, n=Math.floor((a1-a0)/pitch);
   const geo=new THREE.CylinderGeometry(pitch*0.48/1000,pitch*0.48/1000,(y1-y0)/1000,12);
-  const im=new THREE.InstancedMesh(geo,mat,n); const m4=new THREE.Matrix4();
-  const fc={'+x':x1,'-x':x0,'+z':z1,'-z':z0}[face];
+  const fc={'+x':x1,'-x':x0,'+z':z1,'-z':z0}[face], parts=[];
   for(let i=0;i<n;i++){const s=a0+pitch*(i+.5); const px=alongX?s:fc, pz=alongX?fc:s;
-    m4.makeTranslation((px-W/2)/1000,(y0+y1)/2000,(pz-D/2)/1000); im.setMatrixAt(i,m4);}
-  im.castShadow=im.receiveShadow=true; furn.add(im); return im;
+    parts.push(geo.clone().translate((px-W/2)/1000,(y0+y1)/2000,(pz-D/2)/1000));}
+  const im=new THREE.Mesh(mergeGeometries(parts),mat); im.castShadow=im.receiveShadow=true; furn.add(im); return im;
 }
 // cabinetry with doors, gaps and handles
-function joinery({x0,x1,z0,z1,y0,y1,front,door=500,body,face,handle='v',hlen=0,gap=3,proud=18,flute=0}){
+// handleless cabinetry: bevelled doors on a dark reveal; low units get a recessed finger channel under the top
+function joinery({x0,x1,z0,z1,y0,y1,front,door=500,body,face,gap=4,proud=18,flute=0}){
   R(x0,x1,z0,z1,y0,y1,body);
   const alongX=front==='+z'||front==='-z', a0=alongX?x0:z0, a1=alongX?x1:z1;
   const n=Math.max(1,Math.round((a1-a0)/door)), dw=(a1-a0)/n;
   const fc={'+x':x1,'-x':x0,'+z':z1,'-z':z0}[front], sg=front[0]==='+'?1:-1;
-  const slab=(s0,s1,f0,f1,yy0,yy1,mat)=> alongX? R(s0,s1,Math.min(f0,f1),Math.max(f0,f1),yy0,yy1,mat) : R(Math.min(f0,f1),Math.max(f0,f1),s0,s1,yy0,yy1,mat);
+  const slab=(s0,s1,f0,f1,yy0,yy1,mat,rad=0)=> alongX? R(s0,s1,Math.min(f0,f1),Math.max(f0,f1),yy0,yy1,mat,rad) : R(Math.min(f0,f1),Math.max(f0,f1),s0,s1,yy0,yy1,mat,rad);
+  const gola=y0<=120 && y1>=700 && y1<=1100, top=gola?y1-34:y1-gap;
+  slab(a0,a1,fc,fc+sg*2,y0,y1,M.reveal);
+  if(gola) slab(a0,a1,fc+sg*2,fc+sg*(proud-12),top+2,y1,M.reveal);
   for(let i=0;i<n;i++){const s0=a0+i*dw+gap/2, s1=a0+(i+1)*dw-gap/2;
-    slab(s0,s1,fc,fc+sg*proud,y0+gap,y1-gap,face);
-    if(handle){ const f0=fc+sg*(proud+6), f1=fc+sg*(proud+18);
-      if(handle==='v'){ const hs=i%2?s0+45:s1-45, L=hlen||Math.min(500,(y1-y0)*.4), ym=hlen>=700?(y0+y1)/2:y1-60-L/2;
-        slab(hs-7,hs+7,f0,f1,ym-L/2,ym+L/2,M.brass);
-        slab(hs-4,hs+4,fc+sg*proud,f0,ym-L/2+20,ym-L/2+34,M.brass); slab(hs-4,hs+4,fc+sg*proud,f0,ym+L/2-34,ym+L/2-20,M.brass);}
-      else { const L=Math.min(dw-120,hlen||320), sm=(s0+s1)/2; slab(sm-L/2,sm+L/2,f0,f1,y1-58,y1-46,M.brass);} }
-  }
-  if(flute){ const f=fc+sg*proud; alongX? fluted(a0,a1,Math.min(f,f+sg),Math.max(f,f+sg),y0+gap,y1-gap,front,flute,face)
-    : fluted(Math.min(f,f+sg),Math.max(f,f+sg),a0,a1,y0+gap,y1-gap,front,flute,face); }
+    slab(s0,s1,fc+sg*2,fc+sg*proud,y0+gap,top,face,2.5); }
+  if(flute){ const f=fc+sg*proud; alongX? fluted(a0,a1,Math.min(f,f+sg),Math.max(f,f+sg),y0+gap,top,front,flute,face)
+    : fluted(Math.min(f,f+sg),Math.max(f,f+sg),a0,a1,y0+gap,top,front,flute,face); }
 }
 function lampLight(xmm,ymm,zmm,intensity=2.2,dist=5){const l=new THREE.PointLight(0xFFCB8A,intensity,dist,2);l.position.set((xmm-W/2)/1000,ymm/1000,(zmm-D/2)/1000);furn.add(l);lamps.push(l);return l;}
 function tableLamp(x,z,y){ C(x,z,55,70,y,y+30,M.brass); C(x,z,10,10,y+30,y+330,M.brass); C(x,z,130,150,y+300,y+520,M.shade,40,true); lampLight(x,y+420,z,1.6,4); }
@@ -590,8 +600,9 @@ function bed(x,z,deg,Wd,L){ const g=grp(x,z,deg);
   const du=part(g,[0,515,180],[Wd+90,90,L-360],M.linen,40);
   part(g,[0,560,L/2-200],[Wd+130,32,380],M.velvet,14);
   const hb=part(g,[0,600,-L/2-50],[Wd+380,1200,90],M.linen,30);
-  const n=Math.floor((Wd+340)/80); const geo=new THREE.CylinderGeometry(.037,.037,1.1,12); const im=new THREE.InstancedMesh(geo,M.linen,n); const m4=new THREE.Matrix4();
-  for(let i=0;i<n;i++){ m4.makeTranslation((-(Wd+340)/2+80*(i+.5))/1000,.6,(-L/2-5)/1000); im.setMatrixAt(i,m4);} im.castShadow=true; g.add(im);
+  const n=Math.floor((Wd+340)/80); const geo=new THREE.CylinderGeometry(.037,.037,1.1,12); const parts=[];
+  for(let i=0;i<n;i++) parts.push(geo.clone().translate((-(Wd+340)/2+80*(i+.5))/1000,.6,(-L/2-5)/1000));
+  const im=new THREE.Mesh(mergeGeometries(parts),M.linen); im.castShadow=true; g.add(im);
   const pc=Wd>1600?[-Wd/4,Wd/4]:[-Wd/4,Wd/4];
   for(const px of pc){ const p=part(g,[px,600,-L/2+170],[Wd/2-60,150,480],M.linenW,70); p.rotation.x=-.45;
     const q=part(g,[px*.95,580,-L/2+330],[Wd/2-160,130,380],M.velvet,60); q.rotation.x=-.35; }
@@ -804,7 +815,8 @@ R(5100,5650,8900,9375,0,850,M.matteW,10); R(5100,5650,8900,9375,850,880,M.steel,
 const ceilShape=new THREE.Shape(); outline.forEach(([x,y],i)=>i?ceilShape.lineTo(X(x),Z(y)):ceilShape.moveTo(X(x),Z(y)));
 const ceilGeo=new THREE.ShapeGeometry(ceilShape); ceilGeo.rotateX(Math.PI/2);
 const ceiling=new THREE.Mesh(ceilGeo,M.ceiling); ceiling.position.y=WALL_H-0.001; furn.add(ceiling);
-for(const [x,z] of [[8200,1300],[9300,1300],[8200,2700],[9300,2700],[9000,7300],[9000,8300],[1700,1500],[1700,3300],[4800,1100],[4800,2600],[3200,6100],[7000,4400]]){
+const DOWNLIGHTS=[[9300,7800],[8700,8900],[7200,9200],[8200,1300],[9300,1300],[8200,2700],[9300,2700],[9000,7300],[9000,8300],[1700,1500],[1700,3300],[4800,1100],[4800,2600],[3200,6100],[7000,4400]];
+for(const [x,z] of DOWNLIGHTS){
   const d=new THREE.Mesh(new THREE.CircleGeometry(.045,24),M.glow); d.rotation.x=Math.PI/2; d.position.set((x-W/2)/1000,WALL_H-0.004,(z-D/2)/1000); furn.add(d); }
 
 /* ---------- labels & dimensions ---------- */
@@ -947,8 +959,8 @@ document.getElementById('m-shell').onclick=()=>setMode(false);
 document.getElementById('m-furn').onclick=()=>setMode(true);
 // cabinet finish alternatives: lower cabinets (kitchen, sideboard, TV console, shoe cabinet) and upper / tall units
 const FINISH={
-  light:{map:T.oakVeneer,upper:0xF1EFEA,note:'Light oak veneer lowers; matte white uppers and tall units to the ceiling; pale quartz top; brushed brass handles.'},
-  dark:{map:T.darkOak,upper:0xE4D6BD,note:'Dark oak, mahogany-toned lowers; cream beige uppers and tall units to the ceiling; pale quartz top; brushed brass handles.'}};
+  light:{map:T.oakVeneer,upper:0xF1EFEA,note:'Light oak veneer lowers; matte white uppers and tall units to the ceiling; pale quartz top; handleless, with a recessed finger channel on the low units.'},
+  dark:{map:T.darkOak,upper:0xE4D6BD,note:'Dark oak, mahogany-toned lowers; cream beige uppers and tall units to the ceiling; pale quartz top; handleless, with a recessed finger channel on the low units.'}};
 function setFinish(k){ const f=FINISH[k]; M.oakV.map=f.map; M.oakV.needsUpdate=true; M.matteW.color.set(f.upper);
   document.getElementById('f-light').setAttribute('aria-pressed',k==='light'); document.getElementById('f-dark').setAttribute('aria-pressed',k==='dark');
   document.getElementById('finish-note').textContent=f.note; }
@@ -956,6 +968,40 @@ document.getElementById('f-light').onclick=()=>setFinish('light');
 document.getElementById('f-dark').onclick=()=>setFinish('dark');
 setFinish(location.hash==='#dark'?'dark':'light');
 window.__finish=setFinish;
+
+/* Photo render: progressive path tracing of the current view (true bounce light, soft shadows, reflections) */
+let pt=null, ptOn=false, ptSaved=null, ptFrame=0;
+const ptSpots=DOWNLIGHTS.map(([x,z])=>{ const l=new THREE.SpotLight(0xFFEEDD,10,0,Math.PI/3,0.85,2);
+  l.position.set((x-W/2)/1000,WALL_H-0.02,(z-D/2)/1000); l.target.position.set((x-W/2)/1000,0,(z-D/2)/1000); l.add(l.target); l.target.position.set(0,-1,0); return l; });
+const ptStatus=document.getElementById('pt-status'), ptBtn=document.getElementById('photo');
+function stopPhoto(){ if(!ptOn) return; ptOn=false; ptSpots.forEach(l=>furn.remove(l)); renderer.toneMappingExposure=0.88;
+  scene.environment=ptSaved.env; ceiling.material.side=THREE.FrontSide; ceiling.visible=ptSaved.ceil;
+  ptStatus.hidden=true; ptBtn.setAttribute('aria-pressed','false'); }
+function startPhoto(){
+  if(ptOn){ stopPhoto(); return; }
+  anim=null; keys.clear();
+  ptStatus.hidden=false; ptStatus.textContent='Preparing photo render…'; ptBtn.setAttribute('aria-pressed','true');
+  setTimeout(()=>{ try{
+    if(!pt){ pt=new WebGLPathTracer(renderer); pt.tiles.set(2,2); pt.bounces=6; pt.filterGlossyFactor=0.4;
+      pt.minSamples=2; pt.renderDelay=0; pt.fadeDuration=350;
+      pt.sky=new GradientEquirectTexture(); pt.sky.topColor.set(0xEEF3FA); pt.sky.bottomColor.set(0xA39B90); pt.sky.update(); }
+    pt.renderScale=Math.min(1,1.25/renderer.getPixelRatio());
+    ptSaved={env:scene.environment, ceil:ceiling.visible};
+    const inside=camera.position.y<WALL_H-0.05;
+    ceiling.material.side=THREE.DoubleSide; ceiling.visible=ptSaved.ceil&&inside;
+    scene.backgroundRotation=scene.backgroundRotation||new THREE.Euler(); scene.environmentRotation=scene.environmentRotation||new THREE.Euler();
+    ptSpots.forEach(l=>furn.add(l)); renderer.toneMappingExposure=1.25;
+    scene.environment=pt.sky; scene.updateMatrixWorld(true);
+    pt.setScene(scene,camera); ptOn=true; ptFrame=0;
+    ptStatus.textContent='Photo render running · it sharpens over a few seconds · drag or pick a view to stop';
+  }catch(e){ console.error(e); ptOn=false; if(ptSaved){scene.environment=ptSaved.env; ceiling.material.side=THREE.FrontSide; ceiling.visible=ptSaved.ceil;}
+    ptStatus.textContent='Photo render is not available on this device.'; ptBtn.setAttribute('aria-pressed','false'); setTimeout(()=>{ptStatus.hidden=true;},4000);} },40);
+}
+ptBtn.onclick=startPhoto;
+controls.addEventListener('start',stopPhoto);
+['.toolbar','aside'].forEach(sel=>document.querySelector(sel).addEventListener('click',e=>{ if(!e.target.closest('#photo')) stopPhoto(); },true));
+window.__photo=()=>{ startPhoto(); };
+window.__ptSamples=()=>pt?pt.samples:0;
 setMode(true);
 let doorT=0, doorGoal=0;
 const placeDoor=t=>doorPanels.forEach(p=>{ p.g.position.x=((p.open+(p.closed-p.open)*t)-W/2)/1000; });
@@ -978,6 +1024,8 @@ new ResizeObserver(resize).observe(stage); resize();
 document.getElementById('loading').remove();
 let lastNow=0;
 renderer.setAnimationLoop(now=>{
+  if(ptOn){ if(keys.size){ stopPhoto(); } else { pt.renderSample(); labelR.render(scene,camera);
+      if((++ptFrame%20)===0) ptStatus.textContent=`Photo render · ${Math.floor(pt.samples)} samples · drag or pick a view to stop`; lastNow=now; return; } }
   if(anim){const k=Math.min(1,(now-anim.s)/1000), e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
     camera.position.lerpVectors(anim.p0,anim.p1,e); controls.target.lerpVectors(anim.t0,anim.t1,e);
     camera.fov=anim.f0+(anim.f1-anim.f0)*e; camera.updateProjectionMatrix(); if(k===1){ if(anim.walk) controls.maxDistance=1; anim=null; } }
