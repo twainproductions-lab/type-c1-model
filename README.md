@@ -12,4 +12,13 @@ Open `index.html` in a browser, or view it via GitHub Pages.
 
 `references/` holds the dimensioned kitchen plan and elevations, the overview render and depth map used for image-generation prompts, and a view of the front door and shoe cabinet.
 
+## 3D files for rendering
+
+`exports/` holds the full model as .glb (glTF binary), in both cabinet finishes:
+
+- `type-c1-oak-white.glb`
+- `type-c1-dark-oak-cream.glb`
+
+Real-world scale in metres, with materials, textures and lights. Import into D5 Render, Twinmotion, Blender (Cycles), SketchUp with V-Ray or Enscape for photographic renders.
+
 Twain Productions

@@ -45,7 +45,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .pad button{height:44px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:16px;cursor:pointer;touch-action:none;user-select:none}
 .pad button:active,.pad button.on{background:var(--mark);color:#1B2331}
 .pad button:focus-visible{outline:2px solid var(--mark)}
-.pt-status{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;z-index:3;font:12px var(--f-mono);color:var(--ink);background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);border-radius:999px;padding:6px 14px;max-width:calc(100% - 32px);text-align:center}
 .chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;cursor:pointer}
 .chk input{accent-color:var(--accent);width:16px;height:16px}
 .loading{position:absolute;inset:0;display:grid;place-items:center;font:12px var(--f-mono);color:var(--muted)}
@@ -116,15 +115,11 @@ h2{font:600 22px/1.1 var(--f-display);margin:2px 0 4px;letter-spacing:.02em}
         <button id="d-open" aria-pressed="true">Door open</button>
         <button id="d-shut" aria-pressed="false">Door closed</button>
       </div>
-      <div class="seg" role="group" aria-label="Photo render">
-        <button id="photo" aria-pressed="false">Photo render</button>
-      </div>
       <div class="seg" role="group" aria-label="Annotations">
         <button id="t-lbl" aria-pressed="false">Labels</button>
         <button id="t-dim" aria-pressed="false">Dimensions</button>
       </div>
     </div>
-    <div class="pt-status" id="pt-status" role="status" hidden></div>
     <div class="hint"><span class="h-orbit">Drag to orbit · scroll or pinch to zoom · right-drag to pan</span><span class="h-walk">Standing at 1.65 m · drag to look around · W A S D, arrow keys or the pad to walk</span></div>
     <div class="pad" aria-label="Walk controls">
       <span></span><button data-k="f" aria-label="Walk forward">▲</button><span></span>
@@ -204,9 +199,7 @@ h2{font:600 22px/1.1 var(--f-display);margin:2px 0 4px;letter-spacing:.02em}
 {"imports":{
   "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
   "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-  "three/examples/jsm/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-  "three-mesh-bvh":"https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.6/build/index.module.js",
-  "three-gpu-pathtracer":"https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.22/build/index.module.js"
+  "three/examples/jsm/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
 }}
 </script>
 <script type="module">
@@ -216,9 +209,6 @@ import {CSS2DRenderer, CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.j
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {WebGLPathTracer, GradientEquirectTexture} from 'three-gpu-pathtracer';
-// the path tracer expects scene rotation fields added in later three.js releases
-if(!new THREE.Scene().backgroundRotation){ THREE.Scene.prototype.backgroundRotation=new THREE.Euler(); THREE.Scene.prototype.environmentRotation=new THREE.Euler(); }
 
 /* ---------- Plan → millimetres. Anchors: outer walls at px 441/1098 (x) and 265/866 (y) ---------- */
 const PX0=441, PX1=1098, PY0=265, PY1=866, W=10300, D=9450;
@@ -969,39 +959,7 @@ document.getElementById('f-dark').onclick=()=>setFinish('dark');
 setFinish(location.hash==='#dark'?'dark':'light');
 window.__finish=setFinish;
 
-/* Photo render: progressive path tracing of the current view (true bounce light, soft shadows, reflections) */
-let pt=null, ptOn=false, ptSaved=null, ptFrame=0;
-const ptSpots=DOWNLIGHTS.map(([x,z])=>{ const l=new THREE.SpotLight(0xFFEEDD,10,0,Math.PI/3,0.85,2);
-  l.position.set((x-W/2)/1000,WALL_H-0.02,(z-D/2)/1000); l.target.position.set((x-W/2)/1000,0,(z-D/2)/1000); l.add(l.target); l.target.position.set(0,-1,0); return l; });
-const ptStatus=document.getElementById('pt-status'), ptBtn=document.getElementById('photo');
-function stopPhoto(){ if(!ptOn) return; ptOn=false; ptSpots.forEach(l=>furn.remove(l)); renderer.toneMappingExposure=0.88;
-  scene.environment=ptSaved.env; ceiling.material.side=THREE.FrontSide; ceiling.visible=ptSaved.ceil;
-  ptStatus.hidden=true; ptBtn.setAttribute('aria-pressed','false'); }
-function startPhoto(){
-  if(ptOn){ stopPhoto(); return; }
-  anim=null; keys.clear();
-  ptStatus.hidden=false; ptStatus.textContent='Preparing photo render…'; ptBtn.setAttribute('aria-pressed','true');
-  setTimeout(()=>{ try{
-    if(!pt){ pt=new WebGLPathTracer(renderer); pt.tiles.set(2,2); pt.bounces=6; pt.filterGlossyFactor=0.4;
-      pt.minSamples=2; pt.renderDelay=0; pt.fadeDuration=350;
-      pt.sky=new GradientEquirectTexture(); pt.sky.topColor.set(0xEEF3FA); pt.sky.bottomColor.set(0xA39B90); pt.sky.update(); }
-    pt.renderScale=Math.min(1,1.25/renderer.getPixelRatio());
-    ptSaved={env:scene.environment, ceil:ceiling.visible};
-    const inside=camera.position.y<WALL_H-0.05;
-    ceiling.material.side=THREE.DoubleSide; ceiling.visible=ptSaved.ceil&&inside;
-    scene.backgroundRotation=scene.backgroundRotation||new THREE.Euler(); scene.environmentRotation=scene.environmentRotation||new THREE.Euler();
-    ptSpots.forEach(l=>furn.add(l)); renderer.toneMappingExposure=1.25;
-    scene.environment=pt.sky; scene.updateMatrixWorld(true);
-    pt.setScene(scene,camera); ptOn=true; ptFrame=0;
-    ptStatus.textContent='Photo render running · it sharpens over a few seconds · drag or pick a view to stop';
-  }catch(e){ console.error(e); ptOn=false; if(ptSaved){scene.environment=ptSaved.env; ceiling.material.side=THREE.FrontSide; ceiling.visible=ptSaved.ceil;}
-    ptStatus.textContent='Photo render is not available on this device.'; ptBtn.setAttribute('aria-pressed','false'); setTimeout(()=>{ptStatus.hidden=true;},4000);} },40);
-}
-ptBtn.onclick=startPhoto;
-controls.addEventListener('start',stopPhoto);
-['.toolbar','aside'].forEach(sel=>document.querySelector(sel).addEventListener('click',e=>{ if(!e.target.closest('#photo')) stopPhoto(); },true));
-window.__photo=()=>{ startPhoto(); };
-window.__ptSamples=()=>pt?pt.samples:0;
+
 setMode(true);
 let doorT=0, doorGoal=0;
 const placeDoor=t=>doorPanels.forEach(p=>{ p.g.position.x=((p.open+(p.closed-p.open)*t)-W/2)/1000; });
@@ -1024,8 +982,7 @@ new ResizeObserver(resize).observe(stage); resize();
 document.getElementById('loading').remove();
 let lastNow=0;
 renderer.setAnimationLoop(now=>{
-  if(ptOn){ if(keys.size){ stopPhoto(); } else { pt.renderSample(); labelR.render(scene,camera);
-      if((++ptFrame%20)===0) ptStatus.textContent=`Photo render · ${Math.floor(pt.samples)} samples · drag or pick a view to stop`; lastNow=now; return; } }
+
   if(anim){const k=Math.min(1,(now-anim.s)/1000), e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
     camera.position.lerpVectors(anim.p0,anim.p1,e); controls.target.lerpVectors(anim.t0,anim.t1,e);
     camera.fov=anim.f0+(anim.f1-anim.f0)*e; camera.updateProjectionMatrix(); if(k===1){ if(anim.walk) controls.maxDistance=1; anim=null; } }
