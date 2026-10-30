@@ -141,11 +141,7 @@ h2{font:600 22px/1.1 var(--f-display);margin:2px 0 4px;letter-spacing:.02em}
       </div>
       <div>
         <div class="eyebrow" style="margin-bottom:8px">Cabinet finish</div>
-        <div class="seg" role="group" aria-label="Cabinet finish" style="width:max-content;max-width:100%">
-          <button id="f-light" aria-pressed="true">Oak &amp; white</button>
-          <button id="f-dark" aria-pressed="false">Dark oak &amp; cream</button>
-        </div>
-        <p class="note" id="finish-note" style="margin-top:8px"></p>
+        <p class="note">Lower cabinets in <b>TW1-1120 Straight Walnut</b>; upper and tall units in <b>TS4-1200 Creamy</b>, to the ceiling. Pale quartz top, handleless, with a recessed finger channel on the low units. Sideboard, TV console and shoe cabinet match the lowers.</p>
       </div>
       <div>
         <div class="eyebrow" style="margin-bottom:8px">Interior views</div>
@@ -327,9 +323,17 @@ function polished(g,w,h,{base,grout,seed}){ const r=rng(seed); g.fillStyle=base;
   for(let i=0;i<4;i++){ const x0=(i%2)*w/2, y0=Math.floor(i/2)*h/2; g.fillStyle=`rgba(${r()<.5?'255,255,255':'60,50,40'},${.015+r()*.03})`; g.fillRect(x0,y0,w/2,h/2); }
   for(let i=0;i<9000;i++){ g.fillStyle=r()<.5?'rgba(255,255,255,.05)':'rgba(0,0,0,.035)'; g.fillRect(r()*w,r()*h,1.5,1.5); }
   g.fillStyle=grout; g.fillRect(0,0,w,2); g.fillRect(0,h/2-1,w,2); g.fillRect(0,0,2,h); g.fillRect(w/2-1,0,2,h); }
+function straightGrain(g,w,h,{base,dark,light,seed}){ const r=rng(seed); g.fillStyle=base; g.fillRect(0,0,w,h);
+  for(let i=0;i<w*2.2;i++){ const x=r()*w; g.fillStyle=r()<.7?dark:light; g.globalAlpha=.05+r()*.18; g.fillRect(x,0,.5+r()*1.6,h); }
+  for(let i=0;i<14;i++){ const x=r()*w, bw=8+r()*40; g.fillStyle=r()<.5?dark:light; g.globalAlpha=.05+r()*.06; g.fillRect(x,0,bw,h); }
+  g.globalAlpha=1; for(let i=0;i<7000;i++){ g.fillStyle=r()<.5?'rgba(0,0,0,.06)':'rgba(255,255,255,.035)'; g.fillRect(r()*w,r()*h,1,2+r()*6); } }
+function sand(g,w,h,{base,seed}){ const r=rng(seed); g.fillStyle=base; g.fillRect(0,0,w,h);
+  for(let i=0;i<14000;i++){ g.fillStyle=r()<.5?'rgba(255,255,255,.10)':'rgba(90,80,50,.06)'; g.fillRect(r()*w,r()*h,1.5,1.5); } }
 const T={
   oakFloor: tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#B8895A',dark:'#7A5230',light:'#D8B084',plank:128,seed:11})),
   walnut:   tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#5A3A26',dark:'#2E1B10',light:'#86603F',seed:21})),
+  straightWalnut:tex(1024,1024,(g,w,h)=>straightGrain(g,w,h,{base:'#3D2D26',dark:'#241914',light:'#5A463D',seed:34})),
+  creamy:tex(256,256,(g,w,h)=>sand(g,w,h,{base:'#E6DEC4',seed:35})),
   darkOak:tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#5B3826',dark:'#2B160C',light:'#7D5034',seed:32})),
   oakVeneer:tex(1024,1024,(g,w,h)=>wood(g,w,h,{base:'#C69A69',dark:'#8B6038',light:'#E3C39B',seed:31})),
   tileIn:tex(512,512,(g,w,h)=>polished(g,w,h,{base:'#DAD5CD',grout:'rgba(196,188,178,.85)',seed:44})),
@@ -849,7 +853,7 @@ document.getElementById('a-m2').textContent=total.toFixed(1);
 document.getElementById('a-ft').textContent=Math.round(total*10.7639).toLocaleString('en-GB');
 
 const swRoot=document.getElementById('swatches');
-[['Walnut','Joinery, beds, tables',T.walnut],['Oak veneer','Kitchen base units',T.oakVeneer],['Dark oak','Alternative lowers',T.darkOak],['Matte white','Kitchen upper units',null,'#F1EFEA'],
+[['Walnut','Joinery, beds, tables',T.walnut],['Straight Walnut','TW1-1120 · lower cabinets',T.straightWalnut],['Creamy','TS4-1200 · upper and tall units',T.creamy],
  ['Pale quartz','Kitchen worktop',T.quartz],['Calacatta-look','Backsplash, table tops',T.calacatta],['Brushed brass','Handles, lamps, legs',null,'linear-gradient(135deg,#E3C68A,#A57F3E 60%,#D7B574)'],
  ['Cream fabric','Sofa',T_CREAM],['Bouclé','Dining seats',T.boucle],['Cognac leather','Desk chair',null,'#8A4A26'],['Oak flooring','Bedrooms, 200 mm boards',T.oakFloor],['Polished porcelain','Living, dining, kitchen, porch · 600 × 600',T.tileIn],['Front door','Charcoal leaf, black frame',T.doorLeaf]]
 .forEach(([n,u,t,c])=>{const d=document.createElement('div');d.className='sw';const i=document.createElement('i');
@@ -947,17 +951,9 @@ function setMode(f){ furnished=f; furn.visible=f; lineGroup.visible=!f;
   document.getElementById('door-seg').hidden=!f; }
 document.getElementById('m-shell').onclick=()=>setMode(false);
 document.getElementById('m-furn').onclick=()=>setMode(true);
-// cabinet finish alternatives: lower cabinets (kitchen, sideboard, TV console, shoe cabinet) and upper / tall units
-const FINISH={
-  light:{map:T.oakVeneer,upper:0xF1EFEA,note:'Light oak veneer lowers; matte white uppers and tall units to the ceiling; pale quartz top; handleless, with a recessed finger channel on the low units.'},
-  dark:{map:T.darkOak,upper:0xE4D6BD,note:'Dark oak, mahogany-toned lowers; cream beige uppers and tall units to the ceiling; pale quartz top; handleless, with a recessed finger channel on the low units.'}};
-function setFinish(k){ const f=FINISH[k]; M.oakV.map=f.map; M.oakV.needsUpdate=true; M.matteW.color.set(f.upper);
-  document.getElementById('f-light').setAttribute('aria-pressed',k==='light'); document.getElementById('f-dark').setAttribute('aria-pressed',k==='dark');
-  document.getElementById('finish-note').textContent=f.note; }
-document.getElementById('f-light').onclick=()=>setFinish('light');
-document.getElementById('f-dark').onclick=()=>setFinish('dark');
-setFinish(location.hash==='#dark'?'dark':'light');
-window.__finish=setFinish;
+// cabinet finish: TW1-1120 Straight Walnut lowers, TS4-1200 Creamy uppers and tall units
+M.oakV.map=T.straightWalnut; M.oakV.roughness=.6; M.oakV.needsUpdate=true;
+M.matteW.map=T.creamy; M.matteW.color.set(0xffffff); M.matteW.roughness=.72; M.matteW.userData.s=.6; M.matteW.needsUpdate=true;
 
 
 setMode(true);
