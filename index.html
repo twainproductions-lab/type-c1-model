@@ -686,7 +686,7 @@ R(9605,10225,3700,FR0,860,900,M.quartz);
 R(10205,10225,3700,FR0,900,UP,M.calacatta);
 joinery({x0:9875,x1:10225,z0:3700,z1:FR0,y0:UP,y1:CEIL,front:'-x',door:420,body:M.matteW,face:M.matteW,handle:false});
 R(9880,9900,3700,FR0,UP-10,UP,M.glow); lampLight(9950,UP-100,4900,1.1,3);
-vase(10050,4050,900,380); vase(10060,4250,900,220,M.ceramic); R(10170,10200,5500,5900,905,1260,M.walnut,8);
+vase(10050,4050,900,380); vase(10060,4250,900,220,M.ceramic);
 // wide fridge housing: side panels, stainless French-door fridge, cabinet above to ceiling
 // fridge: 833 W × 580 D × 1 900 H, white; 15 mm air gap each side, 20 mm housing panels
 const FW=833, FD=580, FH=1900, FZ0=FR0+20+15, FZ1=FZ0+FW, FX1=10225-30, FX0=FX1-FD, FM=(FZ0+FZ1)/2;
@@ -719,7 +719,7 @@ lampLight(9950,UP-100,7400,1.1,3); lampLight(9950,UP-100,8650,1.1,3); lampLight(
 R(8700,9300,8900,9300,899,901,M.sink,4); R(8740,9260,8930,9270,900,902,std({color:0x3E4246,metalness:.9,roughness:.4}),4);
 C(9000,9330,16,18,900,1180,M.brass,16);
 {const t=new THREE.Mesh(new THREE.TorusGeometry(.1,.011,12,32,Math.PI),M.brass); t.position.set((9000-W/2)/1000,1.18,(9230-D/2)/1000); t.rotation.y=Math.PI/2; furn.add(t);}
-R(10170,10200,8500,8900,905,1260,M.walnut,8); vase(9950,8950,900,200,M.ceramic);
+vase(9950,8950,900,200,M.ceramic);
 C(8550,9150,120,110,900,1000,M.ceramic,32);
 // short arm of the U: double-sided tall unit spanning the full width of the entrance-side stub wall,
 // running from the column's stub wall to face the hob. 3 doors to the kitchen, 3 to the entry side.
