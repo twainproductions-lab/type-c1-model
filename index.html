@@ -167,8 +167,10 @@ h2{font:600 22px/1.1 var(--f-display);margin:2px 0 4px;letter-spacing:.02em}
           <li><span>Kitchen aisle</span><span>1 270</span></li>
           <li><span>Glass pocket door, 3 telescopic panels</span><span>1 272 opening</span></li>
           <li><span>· Pocket, full height</span><span>120 × 600</span></li>
-          <li><span>TV wall, L-shaped: walnut console</span><span>2 580 × 430</span></li>
-          <li><span>· Creamy tall cabinet, floor to ceiling</span><span>800 × 430</span></li>
+          <li><span>TV wall, Creamy, 350 deep: console</span><span>2 580 long</span></li>
+          <li><span>· Glass display cabinet on the console</span><span>300 wide</span></li>
+          <li><span>· Tall cabinet, floor to ceiling</span><span>800 wide</span></li>
+          <li><span>TV, 70-inch</span><span>1 557 × 895</span></li>
           <li><span>Sofa, 3-seater</span><span>2 400 × 950</span></li>
           <li><span>Dining table, 6 seats</span><span>1 800 × 900</span></li>
           <li><span>King bed, master</span><span>1 830 × 2 000</span></li>
@@ -648,15 +650,29 @@ function sofa2(x,z,deg){ const g=grp(x,z,deg); const Wd=2400, Dp=930, hw=Wd/2, h
 /* Living */
 rug(7100,9550,650,3150,T.rugLiving);
 sofa2(10225-470,2020,-90);
-R(6530,6560,1070,2510,1000,1810,M.screen,6);
-// built-in TV wall in an L: low walnut console + an 800 wide Creamy tall cabinet, floor to ceiling, at the wall's end
-const TVT=3880;                                     // end of the TV wall (corner with bedroom 2)
-R(6472,6880,500,TVT-800,0,90,M.plinth);
-joinery({x0:6472,x1:6902,z0:500,z1:TVT-800,y0:90,y1:500,front:'+x',door:645,body:M.oakV,face:M.oakV});
-R(6472,6925,495,TVT-800,500,530,M.quartz);
-R(6472,6880,TVT-800,TVT,0,90,M.plinth);
-joinery({x0:6472,x1:6902,z0:TVT-800,z1:TVT,y0:90,y1:CEIL,front:'+x',door:400,body:M.matteW,face:M.matteW});
-vase(6700,700,530,380); vase(6690,2850,530,220,M.ceramic);
+// 70-inch TV (1 557 × 895 incl. bezel), centred on the open wall between the window end and the glass cabinet
+R(6500,6530,862,2419,960,1855,M.screen,6);
+// built-in TV wall, all Creamy, 350 deep: low console + 300 glass display cabinet on it + 800 tall cabinet, floor to ceiling, at the wall's end
+const TVT=3880, TVX=6472+350;                       // end of the TV wall (corner with bedroom 2); cabinet front
+R(6472,TVX-22,500,TVT-800,0,90,M.plinth);
+joinery({x0:6472,x1:TVX-18,z0:500,z1:TVT-800,y0:90,y1:500,front:'+x',door:645,body:M.matteW,face:M.matteW});
+R(6472,TVX+20,495,TVT-800,500,530,M.quartz);
+R(6472,TVX-22,TVT-800,TVT,0,90,M.plinth);
+joinery({x0:6472,x1:TVX-18,z0:TVT-800,z1:TVT,y0:90,y1:CEIL,front:'+x',door:400,body:M.matteW,face:M.matteW});
+{ // 300 wide glass display cabinet standing on the console, beside the tall cabinet, up to the ceiling
+  const z0=TVT-1100, z1=TVT-800, y0=530, x0=6472, x1=TVX, t=18;
+  R(x0,x0+t,z0,z1,y0,CEIL,M.matteW);                                        // back
+  R(x0,x1-18,z0,z0+t,y0,CEIL,M.matteW); R(x0,x1-18,z1-t,z1,y0,CEIL,M.matteW); // sides
+  R(x0,x1-18,z0,z1,y0,y0+t,M.matteW); R(x0,x1-18,z0,z1,CEIL-t,CEIL,M.matteW); // base and top
+  for(const y of [910,1290,1670,2050,2430]) R(x0+t,x1-22,z0+t,z1-t,y,y+8,M.glass); // glass shelves
+  R(x1-60,x1-44,z0+t,z1-t,CEIL-t-8,CEIL-t,M.glow);                          // LED strip
+  R(x1-18,x1,z0,z0+22,y0,CEIL,M.bronze); R(x1-18,x1,z1-22,z1,y0,CEIL,M.bronze); // slim bronze door frame
+  R(x1-18,x1,z0,z1,y0,y0+22,M.bronze); R(x1-18,x1,z0,z1,CEIL-22,CEIL,M.bronze);
+  R(x1-12,x1-6,z0+22,z1-22,y0+22,CEIL-22,M.doorGlass);                      // bronze-tinted glass
+  const zc=(z0+z1)/2; vase(6640,zc,918,200,M.ceramic); vase(6640,zc,1678,240);
+  R(6560,6760,zc-70,zc-38,1298,1528,M.books[2]); R(6560,6760,zc-36,zc-6,1298,1500,M.books[4]); R(6560,6760,zc-4,zc+24,1298,1515,M.books[5]);
+  C(6640,zc,70,60,2058,2140,M.darkCeram,32); }
+vase(6700,700,530,380); vase(6690,2600,530,220,M.ceramic);
 C(9950,3440,160,180,34,60,M.calacatta,40); C(9950,3440,12,12,60,1560,M.brass,12); C(9950,3440,200,230,1400,1680,M.shade,48,true); lampLight(9950,1550,3440,2.6,6);
 catTree(9750,10220,320,800);
 frame(10170,10225,1370,2670,1150,1950,T.art2,'-x');
