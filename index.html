@@ -167,7 +167,8 @@ h2{font:600 22px/1.1 var(--f-display);margin:2px 0 4px;letter-spacing:.02em}
           <li><span>Kitchen aisle</span><span>1 270</span></li>
           <li><span>Glass pocket door, 3 telescopic panels</span><span>1 272 opening</span></li>
           <li><span>· Pocket, full height</span><span>120 × 600</span></li>
-          <li><span>Built-in TV console</span><span>2 800 × 430</span></li>
+          <li><span>TV wall, L-shaped: walnut console</span><span>2 580 × 430</span></li>
+          <li><span>· Creamy tall cabinet, floor to ceiling</span><span>800 × 430</span></li>
           <li><span>Sofa, 3-seater</span><span>2 400 × 950</span></li>
           <li><span>Dining table, 6 seats</span><span>1 800 × 900</span></li>
           <li><span>King bed, master</span><span>1 830 × 2 000</span></li>
@@ -647,12 +648,15 @@ function sofa2(x,z,deg){ const g=grp(x,z,deg); const Wd=2400, Dp=930, hw=Wd/2, h
 /* Living */
 rug(7100,9550,650,3150,T.rugLiving);
 sofa2(10225-470,2020,-90);
-R(6530,6560,1180,2620,1000,1810,M.screen,6);
-// built-in TV console, full length of the wall, standing on a recessed plinth
-R(6472,6880,500,3300,0,90,M.plinth);
-joinery({x0:6472,x1:6902,z0:500,z1:3300,y0:90,y1:500,front:'+x',door:700,body:M.oakV,face:M.oakV,handle:'h',hlen:360});
-R(6472,6925,495,3305,500,530,M.quartz);
-vase(6700,700,530,380); vase(6690,3050,530,220,M.ceramic);
+R(6530,6560,1070,2510,1000,1810,M.screen,6);
+// built-in TV wall in an L: low walnut console + an 800 wide Creamy tall cabinet, floor to ceiling, at the wall's end
+const TVT=3880;                                     // end of the TV wall (corner with bedroom 2)
+R(6472,6880,500,TVT-800,0,90,M.plinth);
+joinery({x0:6472,x1:6902,z0:500,z1:TVT-800,y0:90,y1:500,front:'+x',door:645,body:M.oakV,face:M.oakV});
+R(6472,6925,495,TVT-800,500,530,M.quartz);
+R(6472,6880,TVT-800,TVT,0,90,M.plinth);
+joinery({x0:6472,x1:6902,z0:TVT-800,z1:TVT,y0:90,y1:CEIL,front:'+x',door:400,body:M.matteW,face:M.matteW});
+vase(6700,700,530,380); vase(6690,2850,530,220,M.ceramic);
 C(9950,3440,160,180,34,60,M.calacatta,40); C(9950,3440,12,12,60,1560,M.brass,12); C(9950,3440,200,230,1400,1680,M.shade,48,true); lampLight(9950,1550,3440,2.6,6);
 catTree(9750,10220,320,800);
 frame(10170,10225,1370,2670,1150,1950,T.art2,'-x');
